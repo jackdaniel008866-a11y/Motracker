@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constants.dart';
 import '../models/transaction.dart' as app;
 import '../models/budget.dart';
@@ -18,18 +19,30 @@ class DatabaseService {
     return _database!;
   }
 
+  static Future<void> reset() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+  }
+
   Future<Database> _initDB() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userEmail = prefs.getString(AppConstants.prefUserEmail) ?? 'guest';
+    final sanitizedEmail = userEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+    final dbName = 'motracker_$sanitizedEmail.db';
+
     if (kIsWeb) {
       databaseFactory = databaseFactoryFfiWeb;
       return await openDatabase(
-        AppConstants.dbName,
+        dbName,
         version: AppConstants.dbVersion,
         onCreate: _createDB,
         onUpgrade: _upgradeDB,
       );
     } else {
       final dbPath = await getDatabasesPath();
-      final path = join(dbPath, AppConstants.dbName);
+      final path = join(dbPath, dbName);
       return await openDatabase(
         path,
         version: AppConstants.dbVersion,
@@ -364,6 +377,25 @@ class DatabaseService {
   }
 
   // ============================================
+  // ============================================
+  // Custom Categories
+  // ============================================
+
+  Future<void> insertCustomCategory(Map<String, dynamic> categoryMap) async {
+    final db = await database;
+    await db.insert(
+      'custom_categories',
+      categoryMap,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getCustomCategories() async {
+    final db = await database;
+    return await db.query('custom_categories');
+  }
+
+  // ============================================
   // Utility
   // ============================================
 
@@ -372,6 +404,7 @@ class DatabaseService {
     await db.delete('transactions');
     await db.delete('budgets');
     await db.delete('recurring_transactions');
+    await db.delete('custom_categories');
   }
 
   Future<void> close() async {

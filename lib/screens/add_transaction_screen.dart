@@ -6,16 +6,21 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../config/theme.dart';
 import '../config/constants.dart';
 import '../models/category.dart' as app_cat;
+import '../models/transaction.dart' as app;
 import '../providers/transaction_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/formatters.dart';
+import '../services/database_service.dart';
+import '../widgets/bouncy_card.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final String initialType;
+  final app.Transaction? existingTransaction;
   
   const AddTransactionScreen({
     super.key,
     this.initialType = AppConstants.typeExpense,
+    this.existingTransaction,
   });
 
   @override
@@ -30,14 +35,38 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   
-  bool _isSaving = false;
   bool _isSplit = false;
   double _splitPercentage = 50.0;
+  bool _isSaving = false;
+  
+  final _db = DatabaseService();
+  List<app_cat.Category> _customCategories = [];
 
   @override
   void initState() {
     super.initState();
-    _type = widget.initialType;
+    if (widget.existingTransaction != null) {
+      final t = widget.existingTransaction!;
+      _type = t.type;
+      _amountController.text = t.amount.toStringAsFixed(2).replaceAll('.00', '');
+      _noteController.text = t.note;
+      _selectedDate = t.date;
+      // We will set category below, it depends on AppCategories.getByType
+      _selectedCategory = app_cat.AppCategories.getByType(_type).firstWhere(
+        (c) => c.id == t.category,
+        orElse: () => app_cat.AppCategories.getByType(_type).first,
+      );
+    } else {
+      _type = widget.initialType;
+    }
+    _loadCustomCategories();
+  }
+
+  Future<void> _loadCustomCategories() async {
+    final list = await _db.getCustomCategories();
+    setState(() {
+      _customCategories = list.map((map) => app_cat.Category.fromMap(map)).toList();
+    });
   }
 
   @override
@@ -49,12 +78,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = app_cat.AppCategories.getByType(_type);
+    final defaultCats = app_cat.AppCategories.getByType(_type);
+    final typeCustom = _customCategories.where((c) => c.type == _type).toList();
+    final categories = [
+      ...defaultCats.where((c) => c.name != 'Other'),
+      ...typeCustom,
+      defaultCats.firstWhere((c) => c.name == 'Other', orElse: () => defaultCats.last)
+    ];
     
     return Scaffold(
       backgroundColor: AppTheme.primaryDark,
       appBar: AppBar(
-        title: Text('Add ${_type == AppConstants.typeExpense ? "Expense" : "Income"}'),
+        title: Text(widget.existingTransaction != null 
+            ? 'Edit ${_type == AppConstants.typeExpense ? "Expense" : "Income"}'
+            : 'Add ${_type == AppConstants.typeExpense ? "Expense" : "Income"}'),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () => Navigator.pop(context),
@@ -186,6 +223,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             ],
                           ).animate().slideY(begin: 0.1, end: 0, delay: 300.ms).fadeIn(),
                           
+                          const SizedBox(height: 24),
+                          
                           // Split Bill Toggle
                           if (_type == AppConstants.typeExpense) ...[
                             Container(
@@ -260,7 +299,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         crossAxisCount: 4,
                         mainAxisSpacing: 0,
                         crossAxisSpacing: 8,
-                        childAspectRatio: 1.25,
+                        childAspectRatio: 0.9,
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -270,10 +309,28 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           return _CategoryItem(
                             category: category,
                             isSelected: isSelected,
-                            onTap: () {
-                              setState(() {
-                                _selectedCategory = category;
-                              });
+                            onTap: () async {
+                              if (category.name == 'Other') {
+                                final customName = await _showCustomCategoryDialog();
+                                if (customName != null && customName.trim().isNotEmpty) {
+                                  final newCat = app_cat.Category(
+                                    name: customName.trim(),
+                                    icon: Icons.star_rounded,
+                                    color: Colors.grey,
+                                    type: _type,
+                                    isCustom: true,
+                                  );
+                                  await _db.insertCustomCategory(newCat.toMap());
+                                  await _loadCustomCategories();
+                                  setState(() {
+                                    _selectedCategory = newCat;
+                                  });
+                                }
+                              } else {
+                                setState(() {
+                                  _selectedCategory = category;
+                                });
+                              }
                             },
                           ).animate().fadeIn(delay: (400 + (index * 20)).ms);
                         },
@@ -282,7 +339,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                   ),
                   
-                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 150)),
                 ],
               ),
             ),
@@ -308,6 +365,34 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 )
               : const Text('Save Transaction'),
         ),
+      ),
+    );
+  }
+
+  Future<String?> _showCustomCategoryDialog() async {
+    String name = '';
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: Text('Custom Category', style: TextStyle(color: AppTheme.textPrimary)),
+        content: TextField(
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Enter category name',
+          ),
+          onChanged: (val) => name = val,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, name),
+            child: const Text('Add'),
+          ),
+        ],
       ),
     );
   }
@@ -371,14 +456,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     try {
       final email = context.read<AuthProvider>().userEmail;
-      await context.read<TransactionProvider>().addTransaction(
-        amount: amount,
-        type: _type,
-        category: _selectedCategory!.name,
-        note: _noteController.text.trim(),
-        date: _selectedDate,
-        email: email,
-      );
+      if (widget.existingTransaction != null) {
+        final updatedTransaction = app.Transaction(
+          id: widget.existingTransaction!.id,
+          amount: amount,
+          type: _type,
+          category: _selectedCategory!.name,
+          note: _noteController.text.trim(),
+          date: _selectedDate,
+        );
+        await context.read<TransactionProvider>().updateTransaction(updatedTransaction, email: email);
+      } else {
+        await context.read<TransactionProvider>().addTransaction(
+          amount: amount,
+          type: _type,
+          category: _selectedCategory!.name,
+          note: _noteController.text.trim(),
+          date: _selectedDate,
+          email: email,
+        );
+      }
 
       if (mounted) {
         Navigator.pop(context);
@@ -420,7 +517,7 @@ class _TypeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return BouncyCard(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -460,7 +557,7 @@ class _CategoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return BouncyCard(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,

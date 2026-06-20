@@ -93,6 +93,14 @@ class SyncService {
 
         final localTransactions = await _db.getAllTransactions();
         final localIds = localTransactions.map((t) => t.id).toSet();
+        final cloudIds = cloudTransactions.map((t) => t.id).toSet();
+
+        for (final t in localTransactions) {
+          if (t.isSynced && !cloudIds.contains(t.id)) {
+            await _db.deleteTransaction(t.id);
+            pulled++;
+          }
+        }
 
         for (final t in cloudTransactions) {
           if (!localIds.contains(t.id)) {
@@ -110,6 +118,14 @@ class SyncService {
 
         final localBudgets = await _db.getAllBudgets();
         final localIds = localBudgets.map((b) => b.id).toSet();
+        final cloudIds = cloudBudgets.map((b) => b.id).toSet();
+
+        for (final b in localBudgets) {
+          if (b.isSynced && !cloudIds.contains(b.id)) {
+            await _db.deleteBudget(b.id);
+            pulled++;
+          }
+        }
 
         for (final b in cloudBudgets) {
           if (!localIds.contains(b.id)) {
@@ -127,6 +143,14 @@ class SyncService {
 
         final localRecurring = await _db.getAllRecurringTransactions();
         final localIds = localRecurring.map((r) => r.id).toSet();
+        final cloudIds = cloudRecurring.map((r) => r.id).toSet();
+
+        for (final r in localRecurring) {
+          if (r.isSynced && !cloudIds.contains(r.id)) {
+            await _db.deleteRecurringTransaction(r.id);
+            pulled++;
+          }
+        }
 
         for (final r in cloudRecurring) {
           if (!localIds.contains(r.id)) {

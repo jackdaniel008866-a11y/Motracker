@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../config/theme.dart';
+import '../config/constants.dart';
 import '../utils/formatters.dart';
+import '../widgets/glass_card.dart';
+import '../widgets/bouncy_card.dart';
+import '../widgets/empty_state.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/budget_provider.dart';
@@ -60,15 +64,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: pages[_currentIndex],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
-          );
-        },
-        child: const Icon(Icons.add_rounded, size: 32),
-      ).animate().scale(delay: 800.ms, duration: 400.ms, curve: Curves.easeOutBack),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.accent.withValues(alpha: 0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          backgroundColor: AppTheme.accent,
+          foregroundColor: AppTheme.primaryDark,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
+            );
+          },
+          child: const Icon(Icons.add_rounded, size: 28),
+        ),
+      ).animate().scale(delay: 500.ms, curve: Curves.easeOutBack),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         color: AppTheme.surfaceDark,
@@ -129,6 +147,7 @@ class _DashboardView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer3<TransactionProvider, AuthProvider, BudgetProvider>(
       builder: (context, provider, auth, budgetProv, _) {
+        final recentTransactions = provider.recentTransactions;
         return SafeArea(
           child: CustomScrollView(
             slivers: [
@@ -194,22 +213,21 @@ class _DashboardView extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Container(
+                  child: GlassCard(
                     padding: const EdgeInsets.all(24),
-                    decoration: AppTheme.glassCardAccent,
                     child: Column(
                       children: [
                         Text(
                           'Total Balance',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppTheme.primaryDark.withValues(alpha: 0.7),
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           Formatters.currencyWithDecimals(provider.totalBalance),
                           style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                            color: AppTheme.primaryDark,
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -221,13 +239,13 @@ class _DashboardView extends StatelessWidget {
                                 'Income',
                                 provider.monthlyIncome,
                                 Icons.arrow_downward_rounded,
-                                AppTheme.primaryDark,
+                                AppTheme.income,
                               ),
                             ),
                             Container(
                               width: 1,
                               height: 40,
-                              color: AppTheme.primaryDark.withValues(alpha: 0.2),
+                              color: Colors.white.withValues(alpha: 0.1),
                             ),
                             Expanded(
                               child: _buildIncomeExpenseSummary(
@@ -398,29 +416,16 @@ class _DashboardView extends StatelessWidget {
                     ),
                   ),
                 )
-              else if (provider.recentTransactions.isEmpty)
+              else if (recentTransactions.isEmpty)
                 SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(40.0),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.receipt_long_rounded,
-                            size: 64,
-                            color: AppTheme.textMuted.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No transactions yet',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 40.0),
+                    child: const EmptyStateWidget(
+                      icon: Icons.receipt_long_rounded,
+                      title: 'No transactions yet',
+                      subtitle: 'Your recent expenses and income will appear here.',
                     ),
-                  ).animate().fadeIn(delay: 300.ms),
+                  ),
                 )
               else
                 SliverList(
@@ -490,20 +495,30 @@ class _TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIncome = transaction.type == 'income';
-    final color = isIncome ? AppTheme.income : AppTheme.textPrimary;
+    final isIncome = transaction.type == AppConstants.typeIncome;
+    final color = isIncome ? AppTheme.income : AppTheme.expense;
     
-    final iconData = app_cat.AppCategories.getIcon(transaction.category, transaction.type);
-    final iconColor = app_cat.AppCategories.getColor(transaction.category, transaction.type);
+    // Find icon from category
+    IconData iconData = Icons.receipt_rounded;
+    Color iconColor = color;
     
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.cardDark,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
+    final appCats = app_cat.AppCategories.getByType(transaction.type);
+    try {
+      final cat = appCats.firstWhere((c) => c.id == transaction.category);
+      iconData = cat.icon;
+      iconColor = cat.color;
+    } catch (_) {}
+    
+    return BouncyCard(
+      onTap: () => _showOptions(context),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.cardDark,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
@@ -556,6 +571,70 @@ class _TransactionTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
+      ),
+    );
+  }
+
+  void _showOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: AppTheme.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.edit_rounded, color: AppTheme.accent),
+                ),
+                title: const Text('Edit Transaction', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddTransactionScreen(
+                        initialType: transaction.type,
+                        existingTransaction: transaction,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const Divider(color: AppTheme.cardDark),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: AppTheme.expense.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.delete_rounded, color: AppTheme.expense),
+                ),
+                title: const Text('Delete Transaction', style: TextStyle(color: AppTheme.expense, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  final email = context.read<AuthProvider>().userEmail;
+                  context.read<TransactionProvider>().deleteTransaction(transaction.id, email: email);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Transaction deleted')),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
       ),
     );
   }

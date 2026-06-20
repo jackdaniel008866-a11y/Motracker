@@ -9,10 +9,10 @@ class AppTheme {
   // ============================================
   
   // Primary colors
-  static const Color primaryDark = Color(0xFF0D1B2A);
-  static const Color surfaceDark = Color(0xFF1B2838);
-  static const Color cardDark = Color(0xFF233044);
-  static const Color cardDarkAlt = Color(0xFF2A3A52);
+  static const Color primaryDark = Color(0xFF050B14); // Deepest Navy / OLED Black
+  static const Color surfaceDark = Color(0xFF0E1621);
+  static const Color cardDark = Color(0xFF17202A);
+  static const Color cardDarkAlt = Color(0xFF1D2733);
   
   // Accent colors
   static const Color accent = Color(0xFF00D09C); // Emerald green
@@ -71,18 +71,21 @@ class AppTheme {
       textTheme: TextTheme(
         displayLarge: GoogleFonts.outfit(
           color: textPrimary,
-          fontSize: 32,
-          fontWeight: FontWeight.w700,
+          fontSize: 34,
+          fontWeight: FontWeight.w800, // ExtraBold for total balance
+          letterSpacing: -1.0,
         ),
         displayMedium: GoogleFonts.outfit(
           color: textPrimary,
           fontSize: 28,
           fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
         ),
         displaySmall: GoogleFonts.outfit(
           color: textPrimary,
           fontSize: 24,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
         ),
         headlineMedium: GoogleFonts.outfit(
           color: textPrimary,
@@ -98,11 +101,13 @@ class AppTheme {
           color: textPrimary,
           fontSize: 16,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
         ),
         titleMedium: GoogleFonts.outfit(
           color: textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
         ),
         bodyLarge: GoogleFonts.inter(
           color: textPrimary,

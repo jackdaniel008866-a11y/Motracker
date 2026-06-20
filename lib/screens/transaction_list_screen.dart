@@ -3,12 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../widgets/bouncy_card.dart';
+import '../widgets/empty_state.dart';
 import '../config/theme.dart';
 import '../models/transaction.dart' as app;
 import '../providers/transaction_provider.dart';
 import '../utils/formatters.dart';
 import '../models/category.dart' as app_cat;
 import '../providers/auth_provider.dart';
+import 'add_transaction_screen.dart';
 
 class TransactionListScreen extends StatefulWidget {
   const TransactionListScreen({super.key});
@@ -100,24 +103,10 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                 child: provider.isLoading
                     ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
                     : groupedTransactions.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.receipt_long_rounded,
-                                  size: 64,
-                                  color: AppTheme.textMuted.withValues(alpha: 0.5),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No transactions found',
-                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: AppTheme.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        ? const EmptyStateWidget(
+                            icon: Icons.search_off_rounded,
+                            title: 'No transactions found',
+                            subtitle: 'Try adjusting your filters or search query.',
                           ).animate().fadeIn()
                         : ListView.builder(
                             padding: const EdgeInsets.only(bottom: 100), // Space for bottom nav
@@ -256,13 +245,15 @@ class _ListTransactionTile extends StatelessWidget {
           SnackBar(content: Text('Transaction deleted')),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.cardDark,
-          borderRadius: BorderRadius.circular(16),
-        ),
+      child: BouncyCard(
+        onTap: () => _showOptions(context),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.cardDark,
+            borderRadius: BorderRadius.circular(16),
+          ),
         child: Row(
           children: [
             Container(
@@ -316,6 +307,70 @@ class _ListTransactionTile extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    ),
+  );
+}
+
+  void _showOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: AppTheme.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.edit_rounded, color: AppTheme.accent),
+                ),
+                title: const Text('Edit Transaction', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddTransactionScreen(
+                        initialType: transaction.type,
+                        existingTransaction: transaction,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const Divider(color: AppTheme.cardDark),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: AppTheme.expense.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.delete_rounded, color: AppTheme.expense),
+                ),
+                title: const Text('Delete Transaction', style: TextStyle(color: AppTheme.expense, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  final email = context.read<AuthProvider>().userEmail;
+                  context.read<TransactionProvider>().deleteTransaction(transaction.id, email: email);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Transaction deleted')),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );

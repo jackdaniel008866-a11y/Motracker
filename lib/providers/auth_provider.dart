@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/database_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -60,6 +61,8 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
     
     await _authService.signOut();
+    await DatabaseService.reset();
+    
     _isLoggedIn = false;
     _userEmail = null;
     _userName = null;
