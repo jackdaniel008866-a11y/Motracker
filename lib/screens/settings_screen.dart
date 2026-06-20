@@ -113,7 +113,7 @@ class SettingsScreen extends StatelessWidget {
 
               // Sync & Backup
               SliverToBoxAdapter(
-                child: _SectionHeader(title: 'Cloud Backup (Google Sheets)'),
+                child: _SectionHeader(title: 'Cloud Backup'),
               ),
               
               SliverToBoxAdapter(
