@@ -31,33 +31,37 @@ class _StatsScreenState extends State<StatsScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Analytics',
                         style: Theme.of(context).textTheme.displaySmall,
                       ),
+                      const SizedBox(height: 16),
                       // Date Filter Selector
-                      SegmentedButton<DateFilter>(
-                        segments: const [
-                          ButtonSegment(value: DateFilter.thisWeek, label: Text('Week')),
-                          ButtonSegment(value: DateFilter.thisMonth, label: Text('Month')),
-                          ButtonSegment(value: DateFilter.thisYear, label: Text('Year')),
-                          ButtonSegment(value: DateFilter.allTime, label: Text('All')),
-                        ],
-                        selected: {provider.dateFilter},
-                        onSelectionChanged: (Set<DateFilter> newSelection) {
-                          provider.setDateFilter(newSelection.first);
-                        },
-                        style: SegmentedButton.styleFrom(
-                          selectedForegroundColor: AppTheme.primaryDark,
-                          selectedBackgroundColor: AppTheme.accent,
-                          backgroundColor: AppTheme.cardDark,
-                          foregroundColor: AppTheme.textSecondary,
-                          textStyle: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<DateFilter>(
+                          segments: const [
+                            ButtonSegment(value: DateFilter.thisWeek, label: Text('Week')),
+                            ButtonSegment(value: DateFilter.thisMonth, label: Text('Month')),
+                            ButtonSegment(value: DateFilter.thisYear, label: Text('Year')),
+                            ButtonSegment(value: DateFilter.allTime, label: Text('All')),
+                          ],
+                          selected: {provider.dateFilter},
+                          onSelectionChanged: (Set<DateFilter> newSelection) {
+                            provider.setDateFilter(newSelection.first);
+                          },
+                          style: SegmentedButton.styleFrom(
+                            selectedForegroundColor: AppTheme.primaryDark,
+                            selectedBackgroundColor: AppTheme.accent,
+                            backgroundColor: AppTheme.cardDark,
+                            foregroundColor: AppTheme.textSecondary,
+                            textStyle: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          showSelectedIcon: false,
                         ),
-                        showSelectedIcon: false,
                       ),
                     ],
                   ),

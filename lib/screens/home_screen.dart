@@ -87,20 +87,20 @@ class _HomeScreenState extends State<HomeScreen> {
           child: const Icon(Icons.add_rounded, size: 28),
         ),
       ).animate().scale(delay: 500.ms, curve: Curves.easeOutBack),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       bottomNavigationBar: BottomAppBar(
         color: AppTheme.surfaceDark,
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildNavItem(0, Icons.home_rounded, 'Home'),
             _buildNavItem(1, Icons.receipt_long_rounded, 'List'),
-            const SizedBox(width: 40), // Space for FAB
             _buildNavItem(2, Icons.autorenew_rounded, 'Auto'),
             _buildNavItem(3, Icons.pie_chart_rounded, 'Stats'),
             _buildNavItem(4, Icons.settings_rounded, 'Settings'),
+            const SizedBox(width: 40), // Space for FAB
           ],
         ),
       ),
