@@ -135,12 +135,36 @@ class SettingsScreen extends StatelessWidget {
                       : IconButton(
                           icon: const Icon(Icons.sync_rounded),
                           onPressed: () {
-                            sync.syncNow(auth.userEmail);
+                            if (!sync.isSyncing) {
+                              sync.syncNow(auth.userEmail).then((success) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(sync.lastSyncMessage ?? (success ? 'Sync complete!' : 'Sync failed')),
+                                      backgroundColor: success ? AppTheme.accent : AppTheme.expense,
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
+                              });
+                            }
                           },
                         ),
                   onTap: () {
                     if (!sync.isSyncing) {
-                      sync.syncNow(auth.userEmail);
+                      sync.syncNow(auth.userEmail).then((success) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).clearSnackBars();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(sync.lastSyncMessage ?? (success ? 'Sync complete!' : 'Sync failed')),
+                              backgroundColor: success ? AppTheme.accent : AppTheme.expense,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      });
                     }
                   },
                 ).animate().slideX(begin: 0.1, end: 0, delay: 100.ms).fadeIn(),

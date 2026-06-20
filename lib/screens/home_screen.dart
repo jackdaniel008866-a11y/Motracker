@@ -190,10 +190,13 @@ class _DashboardView extends StatelessWidget {
                           final email = auth.userEmail;
                           context.read<SyncProvider>().syncNow(email).then((success) {
                             if (context.mounted) {
+                              final provider = context.read<SyncProvider>();
+                              ScaffoldMessenger.of(context).clearSnackBars();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(success ? 'Sync complete!' : 'Sync failed'),
+                                  content: Text(provider.lastSyncMessage ?? (success ? 'Sync complete!' : 'Sync failed')),
                                   backgroundColor: success ? AppTheme.accent : AppTheme.expense,
+                                  duration: const Duration(seconds: 3),
                                 ),
                               );
                               // Reload transactions after sync

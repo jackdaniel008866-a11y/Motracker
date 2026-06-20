@@ -424,20 +424,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _saveTransaction() async {
     final amountText = _amountController.text.trim();
     if (amountText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter an amount')),
-      );
+      _showSnackBar('Please enter an amount');
       return;
     }
 
     double amount = double.tryParse(amountText) ?? 0.0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
-      );
+      _showSnackBar('Please enter a valid amount');
       return;
     }
 
@@ -446,9 +452,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
 
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
-      );
+      _showSnackBar('Please select a category');
       return;
     }
 
@@ -478,19 +482,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       }
 
       if (mounted) {
+        _showSnackBar(widget.existingTransaction != null ? 'Transaction updated' : 'Transaction saved');
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transaction saved'),
-            backgroundColor: AppTheme.accent,
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        _showSnackBar('Error: $e');
       }
     } finally {
       if (mounted) {
