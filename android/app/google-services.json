@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "238114951070",
+    "project_id": "motracker-16719",
+    "storage_bucket": "motracker-16719.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238114951070:android:db2d0de46b085225cc508f",
+        "android_client_info": {
+          "package_name": "com.example.motracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYlKh17YKjOEyNNC637Jhaup01rguDS_0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
